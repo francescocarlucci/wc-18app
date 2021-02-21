@@ -13,9 +13,9 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 		$this->has_fields = true;
 		$this->method_title = '18app';
 		$this->method_description = 'Consente ai diciottenni di utilizzare il buono a loro riservato per l\'acquisto di materiale didattico.';
-		
+
 		if(get_option('wc18-image')) {
-			$this->icon = WC18_URI . 'images/18app.png';			
+			$this->icon = WC18_URI . 'images/18app.png';
 		}
 
 		$this->init_form_fields();
@@ -36,7 +36,7 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 	 * Campi relativi al sistema di pagamento, modificabili nel back-end
 	 */
 	public function init_form_fields() {
-		
+
 		$this->form_fields = apply_filters( 'wc_offline_form_fields',array(
 			'enabled' => array(
 		        'title' => __( 'Enable/Disable', 'woocommerce' ),
@@ -62,7 +62,7 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 
 
 	/**
-	 * Campo per l'inserimento del buono nella pagina di checkout 
+	 * Campo per l'inserimento del buono nella pagina di checkout
 	 */
 	public function payment_fields() {
 		?>
@@ -88,14 +88,14 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 		$wc18_categories = get_option('wc18-categories');
 
 		if ( $wc18_categories ) {
-	
+
 			$purchasable = str_replace( '(', '', $purchasable );
 			$purchasable = str_replace( ')', '', $purchasable );
 			$bene        = strtolower( str_replace( ' ', '-', $purchasable ) );
-			
+
 			$output = array();
 
-			for($i=0; $i < count($wc18_categories); $i++) { 
+			for($i=0; $i < count($wc18_categories); $i++) {
 				if(array_key_exists($bene, $wc18_categories[$i])) {
 
 					$output[] = $wc18_categories[$i][$bene];
@@ -103,15 +103,15 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 			}
 
 			return $output;
-				
+
 		}
 
 	}
 
 
 	/**
-	 * Tutti i prodotti dell'ordine devono essere della tipologia (cat) consentita dal buono 18app. 
-	 * @param  object $order  
+	 * Tutti i prodotti dell'ordine devono essere della tipologia (cat) consentita dal buono 18app.
+	 * @param  object $order
 	 * @param  string $bene il bene acquistabile con il buono
 	 * @return bool
 	 */
@@ -122,7 +122,7 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 		$items = $order->get_items();
 
 		$output = true;
-		
+
 		if ( is_array( $cats ) && ! empty( $cats ) ) {
 
 			foreach ($items as $item) {
@@ -142,12 +142,12 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 
 				}
 
-			}		
+			}
 
 		}
 
-		return $output;
-		
+		return apply_filters( 'wc18app_is_purchasable', $output, $items, $cats );
+
 	}
 
 
@@ -157,7 +157,7 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 	 * @return mixed        testo formattato con il buono utilizzato per l'acquisto
 	 */
 	public function display_18app_code($order) {
-		
+
 		$data = $order->get_data();
 
 		if($data['payment_method'] === '18app') {
@@ -188,7 +188,7 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 	    if($app_code) {
 
 		    $soapClient = new wc18_soap_client($app_code, $import);
-		    
+
 		    try {
 
 		    	/*Prima verifica del buono*/
@@ -196,7 +196,7 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 
 				$bene    = $response->checkResp->ambito; //il bene acquistabile con il buono inserito
 			    $importo_buono = floatval($response->checkResp->importo); //l'importo del buono inserito
-			    
+
 			    /*Verifica se i prodotti dell'ordine sono compatibili con i beni acquistabili con il buono*/
 			    $purchasable = $this->is_purchasable($order, $bene);
 
@@ -231,8 +231,8 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 						    // $order->reduce_order_stock();// Deprecated
 						    // wc_reduce_stock_levels($order_id);
 
-						    /*Svuota carrello*/ 
-						    $woocommerce->cart->empty_cart();	
+						    /*Svuota carrello*/
+						    $woocommerce->cart->empty_cart();
 
 						    /*Aggiungo il buono 18app all'ordine*/
 							update_post_meta($order_id, 'wc-codice-18app', $app_code);
@@ -243,10 +243,10 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 						    );
 
 						} catch(Exception $e) {
-			
+
 				            $notice = $e->detail->FaultVoucher->exceptionMessage;
-				       
-				        } 
+
+				        }
 
 					}
 
@@ -255,11 +255,11 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 	        } catch(Exception $e) {
 
 	            $notice = $e->detail->FaultVoucher->exceptionMessage;
-	        
-	        }  
 
-	    }	
-		
+	        }
+
+	    }
+
 		if($notice) {
 			wc_add_notice( __('<b>Buono 18app</b> - ' . $notice, 'wc18'), 'error' );
 		}
@@ -273,11 +273,11 @@ class WC18_18app_Gateway extends WC_Payment_Gateway {
 
 /**
  * Se presente un certificato, aggiunge il nuovo gateway a quelli disponibili in WooCommerce
- * @param array $methods gateways disponibili 
+ * @param array $methods gateways disponibili
  */
 function wc18_add_18app_gateway_class($methods) {
 	if(wc18_admin::get_the_file('.pem') && get_option('wc18-cert-activation')) {
-	    $methods[] = 'WC18_18app_Gateway'; 
+	    $methods[] = 'WC18_18app_Gateway';
 	}
 
     return $methods;
